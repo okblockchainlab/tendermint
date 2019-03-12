@@ -27,6 +27,7 @@ var (
 	hostnamePrefix          string
 	startingIPAddress       string
 	p2pPort                 int
+	basePort                int
 )
 
 const (
@@ -51,6 +52,7 @@ func init() {
 		"Starting IP address (192.168.0.1 results in persistent peers list ID0@192.168.0.1:26656, ID1@192.168.0.2:26656, ...)")
 	TestnetFilesCmd.Flags().IntVar(&p2pPort, "p2p-port", 26656,
 		"P2P Port")
+	TestnetFilesCmd.Flags().IntVar(&basePort, "base-port", 20056, "P2P Port")
 }
 
 // TestnetFilesCmd allows initialisation of files for a Tendermint testnet.

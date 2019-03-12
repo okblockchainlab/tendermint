@@ -328,7 +328,7 @@ type RPCConfig struct {
 // DefaultRPCConfig returns a default configuration for the RPC server
 func DefaultRPCConfig() *RPCConfig {
 	return &RPCConfig{
-		ListenAddress:          "tcp://0.0.0.0:26657",
+		ListenAddress:          "tcp://0.0.0.0:26657", //okdex
 		CORSAllowedOrigins:     []string{},
 		CORSAllowedMethods:     []string{"HEAD", "GET", "POST"},
 		CORSAllowedHeaders:     []string{"Origin", "Accept", "Content-Type", "X-Requested-With", "X-Server-Time"},
@@ -445,7 +445,7 @@ type P2PConfig struct {
 // DefaultP2PConfig returns a default configuration for the peer-to-peer layer
 func DefaultP2PConfig() *P2PConfig {
 	return &P2PConfig{
-		ListenAddress:           "tcp://0.0.0.0:26656",
+		ListenAddress:           "tcp://0.0.0.0:26656", // okdex
 		ExternalAddress:         "",
 		UPNP:                    false,
 		AddrBook:                defaultAddrBookPath,
