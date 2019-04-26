@@ -352,7 +352,7 @@ func DefaultRPCConfig() *RPCConfig {
 		Unsafe:             false,
 		MaxOpenConnections: 900,
 
-		MaxSubscriptionClients:    100,
+		MaxSubscriptionClients:    5000,
 		MaxSubscriptionsPerClient: 5,
 		TimeoutBroadcastTxCommit:  10 * time.Second,
 	}
