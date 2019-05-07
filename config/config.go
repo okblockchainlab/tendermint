@@ -49,6 +49,10 @@ var (
 
 	defaultNodeKeyPath  = filepath.Join(defaultConfigDir, defaultNodeKeyName)
 	defaultAddrBookPath = filepath.Join(defaultConfigDir, defaultAddrBookName)
+
+	DefaultLogPath     = os.ExpandEnv("$HOME/.okchaind")
+	defaultLogFileName = "okchaind.log"
+	defaultLogFile     = filepath.Join(DefaultLogPath, defaultLogFileName)
 )
 
 var (
@@ -103,6 +107,11 @@ func (cfg *Config) SetRoot(root string) *Config {
 	cfg.P2P.RootDir = root
 	cfg.Mempool.RootDir = root
 	cfg.Consensus.RootDir = root
+
+	// okchain change LogFile base on cfg.BaseConfig.RootDir
+	if root != DefaultLogPath && cfg.BaseConfig.LogFile == defaultLogFile {
+		cfg.BaseConfig.LogFile = filepath.Join(root, defaultLogFileName)
+	}
 	return cfg
 }
 
@@ -166,6 +175,12 @@ type BaseConfig struct {
 	// Output format: 'plain' (colored text) or 'json'
 	LogFormat string `mapstructure:"log_format"`
 
+	// Logging file directory
+	LogFile string `mapstructure:"log_file"`
+
+	// Logging stdout
+	LogStdout bool `mapstructure:"log_stdout"`
+
 	// Path to the JSON file containing the initial validator set and other meta data
 	Genesis string `mapstructure:"genesis_file"`
 
@@ -205,6 +220,8 @@ func DefaultBaseConfig() BaseConfig {
 		ABCI:               "socket",
 		LogLevel:           DefaultPackageLogLevels(),
 		LogFormat:          LogFormatPlain,
+		LogFile:            defaultLogFile,
+		LogStdout:          true,
 		ProfListenAddress:  "",
 		FastSync:           true,
 		FilterPeers:        false,
