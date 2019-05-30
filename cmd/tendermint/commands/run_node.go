@@ -40,6 +40,12 @@ func AddNodeFlags(cmd *cobra.Command) {
 	cmd.Flags().String("p2p.private_peer_ids", config.P2P.PrivatePeerIDs, "Comma-delimited private peer IDs")
 	cmd.Flags().Bool("p2p.addr_book_strict", config.P2P.AddrBookStrict, "Set true for strict address routability rules, Set false for private or local networks") // okdex
 
+	//pprof flags
+	cmd.Flags().String("prof_laddr", config.ProfListenAddress, "Node listen address. (0.0.0.0:0 means any interface, any port)")
+
+	//db-backend flags
+	cmd.Flags().String("db_backend", config.DBBackend, "Database backend: leveldb | memdb | cleveldb")
+
 	// consensus flags
 	cmd.Flags().Bool("consensus.create_empty_blocks", config.Consensus.CreateEmptyBlocks, "Set this to false to only produce blocks when there are txs or when the AppHash changes")
 }

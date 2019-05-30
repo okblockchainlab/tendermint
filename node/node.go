@@ -15,8 +15,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/cors"
-
-	amino "github.com/tendermint/go-amino"
+	"github.com/spf13/viper"
+	"github.com/tendermint/go-amino"
 	abci "github.com/tendermint/tendermint/abci/types"
 	bc "github.com/tendermint/tendermint/blockchain"
 	cfg "github.com/tendermint/tendermint/config"
@@ -59,7 +59,8 @@ type DBProvider func(*DBContext) (dbm.DB, error)
 // DefaultDBProvider returns a database using the DBBackend and DBDir
 // specified in the ctx.Config.
 func DefaultDBProvider(ctx *DBContext) (dbm.DB, error) {
-	dbType := dbm.DBBackendType(ctx.Config.DBBackend)
+	db_backend := viper.GetString("db_backend")
+	dbType := dbm.DBBackendType(db_backend)
 	return dbm.NewDB(ctx.ID, dbType, ctx.Config.DBDir()), nil
 }
 
@@ -506,7 +507,7 @@ func NewNode(config *cfg.Config,
 	sw.SetAddrBook(addrBook)
 
 	// run the profile server
-	profileHost := config.ProfListenAddress
+	profileHost := viper.GetString("prof_laddr")
 	if profileHost != "" {
 		go func() {
 			logger.Error("Profile server", "err", http.ListenAndServe(profileHost, nil))

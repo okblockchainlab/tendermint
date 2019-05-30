@@ -112,6 +112,7 @@ func (cfg *Config) SetRoot(root string) *Config {
 	if root != DefaultLogPath && cfg.BaseConfig.LogFile == defaultLogFile {
 		cfg.BaseConfig.LogFile = filepath.Join(root, defaultLogFileName)
 	}
+
 	return cfg
 }
 
@@ -222,7 +223,7 @@ func DefaultBaseConfig() BaseConfig {
 		LogFormat:          LogFormatPlain,
 		LogFile:            defaultLogFile,
 		LogStdout:          true,
-		ProfListenAddress:  "",
+		ProfListenAddress:  "localhost:6060",
 		FastSync:           true,
 		FilterPeers:        false,
 		DBBackend:          "cleveldb",
