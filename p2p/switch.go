@@ -405,6 +405,7 @@ func isPrivateAddr(err error) bool {
 // Used to dial peers from config on startup or from unsafe-RPC (trusted sources).
 // TODO: remove addrBook arg since it's now set on the switch
 func (sw *Switch) DialPeersAsync(addrBook AddrBook, peers []string, persistent bool) error {
+	fmt.Printf("DialPeersAsync: peers[%s]\n", peers)
 	netAddrs, errs := NewNetAddressStrings(peers)
 	// only log errors, dial correct addresses
 	for _, err := range errs {

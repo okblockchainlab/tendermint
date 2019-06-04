@@ -48,6 +48,10 @@ var (
 
 	defaultNodeKeyPath  = filepath.Join(defaultConfigDir, defaultNodeKeyName)
 	defaultAddrBookPath = filepath.Join(defaultConfigDir, defaultAddrBookName)
+
+	DefaultLogPath     = os.ExpandEnv("$HOME/.okchaind")
+	defaultLogFileName = "okchaind.log"
+	defaultLogFile     = filepath.Join(DefaultLogPath, defaultLogFileName)
 )
 
 var (
@@ -102,6 +106,12 @@ func (cfg *Config) SetRoot(root string) *Config {
 	cfg.P2P.RootDir = root
 	cfg.Mempool.RootDir = root
 	cfg.Consensus.RootDir = root
+
+	// okchain change LogFile base on cfg.BaseConfig.RootDir
+	if root != DefaultLogPath && cfg.BaseConfig.LogFile == defaultLogFile {
+		cfg.BaseConfig.LogFile = filepath.Join(root, defaultLogFileName)
+	}
+
 	return cfg
 }
 
@@ -165,6 +175,13 @@ type BaseConfig struct {
 	// Output format: 'plain' (colored text) or 'json'
 	LogFormat string `mapstructure:"log_format"`
 
+	// Logging file directory
+	LogFile string `mapstructure:"log_file"`
+
+	// Logging stdout
+	LogStdout bool `mapstructure:"log_stdout"`
+
+
 	// Path to the JSON file containing the initial validator set and other meta data
 	Genesis string `mapstructure:"genesis_file"`
 
@@ -204,10 +221,12 @@ func DefaultBaseConfig() BaseConfig {
 		ABCI:               "socket",
 		LogLevel:           DefaultPackageLogLevels(),
 		LogFormat:          LogFormatPlain,
-		ProfListenAddress:  "",
+		LogFile:            defaultLogFile,
+		LogStdout:          true,
+		ProfListenAddress:  "localhost:6060",
 		FastSync:           true,
 		FilterPeers:        false,
-		DBBackend:          "leveldb",
+		DBBackend:          "cleveldb",
 		DBPath:             "data",
 	}
 }
@@ -358,7 +377,7 @@ type RPCConfig struct {
 // DefaultRPCConfig returns a default configuration for the RPC server
 func DefaultRPCConfig() *RPCConfig {
 	return &RPCConfig{
-		ListenAddress:          "tcp://0.0.0.0:26657",
+		ListenAddress:          "tcp://0.0.0.0:26657", //okdex
 		CORSAllowedOrigins:     []string{},
 		CORSAllowedMethods:     []string{"HEAD", "GET", "POST"},
 		CORSAllowedHeaders:     []string{"Origin", "Accept", "Content-Type", "X-Requested-With", "X-Server-Time"},
@@ -368,7 +387,7 @@ func DefaultRPCConfig() *RPCConfig {
 		Unsafe:             false,
 		MaxOpenConnections: 900,
 
-		MaxSubscriptionClients:    100,
+		MaxSubscriptionClients:    5000,
 		MaxSubscriptionsPerClient: 5,
 		TimeoutBroadcastTxCommit:  10 * time.Second,
 
@@ -503,7 +522,7 @@ type P2PConfig struct {
 // DefaultP2PConfig returns a default configuration for the peer-to-peer layer
 func DefaultP2PConfig() *P2PConfig {
 	return &P2PConfig{
-		ListenAddress:           "tcp://0.0.0.0:26656",
+		ListenAddress:           "tcp://0.0.0.0:26656", //okdex
 		ExternalAddress:         "",
 		UPNP:                    false,
 		AddrBook:                defaultAddrBookPath,

@@ -1,118 +1,117 @@
-package log_test
+package log
 
 import (
-	"bytes"
-	"strings"
+	"fmt"
+	"os"
 	"testing"
 
-	"github.com/tendermint/tendermint/libs/log"
+	"github.com/stretchr/testify/require"
+
+	"github.com/go-kit/kit/log"
 )
 
-func TestVariousLevels(t *testing.T) {
-	testCases := []struct {
-		name    string
-		allowed log.Option
-		want    string
-	}{
-		{
-			"AllowAll",
-			log.AllowAll(),
-			strings.Join([]string{
-				`{"_msg":"here","level":"debug","this is":"debug log"}`,
-				`{"_msg":"here","level":"info","this is":"info log"}`,
-				`{"_msg":"here","level":"error","this is":"error log"}`,
-			}, "\n"),
-		},
-		{
-			"AllowDebug",
-			log.AllowDebug(),
-			strings.Join([]string{
-				`{"_msg":"here","level":"debug","this is":"debug log"}`,
-				`{"_msg":"here","level":"info","this is":"info log"}`,
-				`{"_msg":"here","level":"error","this is":"error log"}`,
-			}, "\n"),
-		},
-		{
-			"AllowInfo",
-			log.AllowInfo(),
-			strings.Join([]string{
-				`{"_msg":"here","level":"info","this is":"info log"}`,
-				`{"_msg":"here","level":"error","this is":"error log"}`,
-			}, "\n"),
-		},
-		{
-			"AllowError",
-			log.AllowError(),
-			strings.Join([]string{
-				`{"_msg":"here","level":"error","this is":"error log"}`,
-			}, "\n"),
-		},
-		{
-			"AllowNone",
-			log.AllowNone(),
-			``,
-		},
-	}
+func TestFilter_With(t *testing.T) {
+	logger := NewTMLogger(log.NewSyncWriter(os.Stdout))
+	logger = NewFilter(logger, AllowError(), AllowInfoWith("module", "test1"), AllowInfoWith("module", "test2"))
 
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			var buf bytes.Buffer
-			logger := log.NewFilter(log.NewTMJSONLogger(&buf), tc.allowed)
-
-			logger.Debug("here", "this is", "debug log")
-			logger.Info("here", "this is", "info log")
-			logger.Error("here", "this is", "error log")
-
-			if want, have := tc.want, strings.TrimSpace(buf.String()); want != have {
-				t.Errorf("\nwant:\n%s\nhave:\n%s", want, have)
-			}
-		})
-	}
+	logger1 := logger.With("module", "test3")
+	f, ok := logger1.(*filter)
+	require.True(t, ok)
+	require.Equal(t, levelError, f.allowed)
 }
 
-func TestLevelContext(t *testing.T) {
-	var buf bytes.Buffer
-
-	logger := log.NewTMJSONLogger(&buf)
-	logger = log.NewFilter(logger, log.AllowError())
-	logger = logger.With("context", "value")
-
-	logger.Error("foo", "bar", "baz")
-	if want, have := `{"_msg":"foo","bar":"baz","context":"value","level":"error"}`, strings.TrimSpace(buf.String()); want != have {
-		t.Errorf("\nwant '%s'\nhave '%s'", want, have)
+func TestFilter_UpdateWith(t *testing.T) {
+	logger := NewTMLogger(log.NewSyncWriter(os.Stdout))
+	logger = NewFilter(logger, AllowError(), AllowInfoWith("module", "test1"), AllowInfoWith("module", "test2"))
+	cacheLoggers = &CacheLoggers{
+		loggersMap: make(map[string]Logger),
+		allowedKV:  cacheLoggers.allowedKV,
 	}
 
-	buf.Reset()
-	logger.Info("foo", "bar", "baz")
-	if want, have := ``, strings.TrimSpace(buf.String()); want != have {
-		t.Errorf("\nwant '%s'\nhave '%s'", want, have)
-	}
+	logger3 := logger.With("module", "test3")
+	f, ok := logger3.(*filter)
+	require.True(t, ok)
+	require.Equal(t, levelError, f.allowed)
+
+	defaultOption := AllowInfo()
+	options := []Option{AllowDebugWith("module", "test1")}
+	UpdateFilter(defaultOption, options...)
+
+	logger1 := logger.With("module", "test1")
+	f, ok = logger1.(*filter)
+	require.True(t, ok)
+	require.Equal(t, levelError|levelInfo|levelDebug, f.allowed)
+
+	logger2 := logger.With("module", "test2")
+	f, ok = logger2.(*filter)
+	require.True(t, ok)
+	require.Equal(t, levelError|levelInfo, f.allowed)
+
+	f, ok = logger3.(*filter)
+	require.True(t, ok)
+	require.Equal(t, levelError|levelInfo, f.allowed)
+
+	defaultOption = AllowInfo()
+	options = []Option{AllowDebugWith("module", "test3")}
+	UpdateFilter(defaultOption, options...)
+	f, ok = logger3.(*filter)
+	require.True(t, ok)
+	require.Equal(t, levelError|levelInfo|levelDebug, f.allowed)
+	require.Equal(t, 3, len(f.allowedKV.data))
 }
 
-func TestVariousAllowWith(t *testing.T) {
-	var buf bytes.Buffer
-
-	logger := log.NewTMJSONLogger(&buf)
-
-	logger1 := log.NewFilter(logger, log.AllowError(), log.AllowInfoWith("context", "value"))
-	logger1.With("context", "value").Info("foo", "bar", "baz")
-	if want, have := `{"_msg":"foo","bar":"baz","context":"value","level":"info"}`, strings.TrimSpace(buf.String()); want != have {
-		t.Errorf("\nwant '%s'\nhave '%s'", want, have)
+func TestConcurrent(t *testing.T) {
+	logger := NewTMLogger(log.NewSyncWriter(os.Stdout))
+	logger = NewFilter(logger, AllowError(), AllowInfoWith("module", "test1"), AllowInfoWith("module", "test2"))
+	cacheLoggers = &CacheLoggers{
+		loggersMap: make(map[string]Logger),
+		allowedKV:  cacheLoggers.allowedKV,
 	}
 
-	buf.Reset()
+	chan1 := make(chan struct{})
+	chan2 := make(chan struct{})
 
-	logger2 := log.NewFilter(logger, log.AllowError(), log.AllowInfoWith("context", "value"), log.AllowNoneWith("user", "Sam"))
-	logger2.With("context", "value", "user", "Sam").Info("foo", "bar", "baz")
-	if want, have := ``, strings.TrimSpace(buf.String()); want != have {
-		t.Errorf("\nwant '%s'\nhave '%s'", want, have)
+	round := 2000
+
+	go func() {
+		for i := 0; i < round; i++ {
+			//fmt.Printf("chan 1: %d\n", i)
+			tmp := logger.With("module", fmt.Sprintf("test%d", i))
+			tmp.Error("kv")
+			tmp.Info("kv")
+			tmp.Debug("kv")
+		}
+		chan1 <- struct{}{}
+	}()
+
+	go func() {
+		for i := 0; i < round; i++ {
+			//fmt.Printf("chan 2: %d\n", i)
+			UpdateLogLevel(fmt.Sprintf("test%d:info,main:info,state:info,order:info,distribution:debug,auth:info,token:info,*:error", i))
+			UpdateLogLevel(fmt.Sprintf("test%d:debug,*.debug", i))
+			UpdateLogLevel(fmt.Sprintf("test%d:erro,*info", i))
+		}
+		chan2 <- struct{}{}
+	}()
+
+	<-chan1
+	<-chan2
+}
+
+func TestFilter_UpdateWith2(t *testing.T) {
+	logger := NewTMLogger(log.NewSyncWriter(os.Stdout))
+	logger = NewFilter(logger, AllowError())
+	cacheLoggers = &CacheLoggers{
+		loggersMap: make(map[string]Logger),
+		allowedKV:  cacheLoggers.allowedKV,
 	}
 
-	buf.Reset()
+	logger3 := logger.With("module", "test3")
+	f, ok := logger3.(*filter)
+	require.True(t, ok)
+	require.Equal(t, levelError, f.allowed)
 
-	logger3 := log.NewFilter(logger, log.AllowError(), log.AllowInfoWith("context", "value"), log.AllowNoneWith("user", "Sam"))
-	logger3.With("user", "Sam").With("context", "value").Info("foo", "bar", "baz")
-	if want, have := `{"_msg":"foo","bar":"baz","context":"value","level":"info","user":"Sam"}`, strings.TrimSpace(buf.String()); want != have {
-		t.Errorf("\nwant '%s'\nhave '%s'", want, have)
-	}
+	UpdateLogLevel(fmt.Sprintf("test3:debug"))
+	require.Equal(t, levelError|levelInfo|levelDebug, f.allowed)
+
 }

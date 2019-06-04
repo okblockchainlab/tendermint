@@ -271,6 +271,7 @@ func (mt *MultiplexTransport) acceptPeers() {
 				secretConn *conn.SecretConnection
 				netAddr    *NetAddress
 			)
+			fmt.Printf("AcceptPeers: %s\n", c.RemoteAddr().String())
 
 			err := mt.filterConn(c)
 			if err == nil {
@@ -280,6 +281,8 @@ func (mt *MultiplexTransport) acceptPeers() {
 					id := PubKeyToID(secretConn.RemotePubKey())
 					netAddr = NewNetAddress(id, addr)
 				}
+			} else {
+				fmt.Printf("FilterConn: %s, err: %s\n", c.RemoteAddr().String(), err)
 			}
 
 			select {
@@ -313,6 +316,7 @@ func (mt *MultiplexTransport) filterConn(c net.Conn) (err error) {
 			_ = c.Close()
 		}
 	}()
+	return nil // okdex: do not filter for testnet
 
 	// Reject if connection is already present.
 	if mt.conns.Has(c) {
@@ -359,6 +363,9 @@ func (mt *MultiplexTransport) upgrade(
 			_ = mt.cleanup(c)
 		}
 	}()
+	if dialedAddr != nil {
+		fmt.Printf("Dialing: %+v\n", dialedAddr)
+	}
 
 	secretConn, err = upgradeSecretConn(c, mt.handshakeTimeout, mt.nodeKey.PrivKey)
 	if err != nil {
@@ -367,6 +374,9 @@ func (mt *MultiplexTransport) upgrade(
 			err:           fmt.Errorf("secret conn failed: %v", err),
 			isAuthFailure: true,
 		}
+	}
+	if dialedAddr != nil {
+		fmt.Printf("Successfully connected to addr: %+v\n", dialedAddr)
 	}
 
 	// For outgoing conns, ensure connection key matches dialed key.
