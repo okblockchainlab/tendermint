@@ -84,7 +84,3 @@ func ParseLogLevel(lvl string, logger log.Logger, defaultLogLevelValue string) (
 
 	return log.NewFilter(logger, options...), nil
 }
-
-func UpdateLogLevel(lvl string) error {
-	return log.UpdateLogLevel(lvl)
-}
