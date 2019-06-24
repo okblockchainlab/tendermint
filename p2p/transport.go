@@ -299,7 +299,9 @@ func (mt *MultiplexTransport) filterConn(c net.Conn) (err error) {
 			_ = c.Close()
 		}
 	}()
-	return nil // okdex: do not filter for testnet
+
+	return nil // oak: do not filter
+
 
 	// Reject if connection is already present.
 	if mt.conns.Has(c) {
