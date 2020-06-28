@@ -114,6 +114,13 @@ func (blockExec *BlockExecutor) CreateProposalBlock(
 // Validation does not mutate state, but does require historical information from the stateDB,
 // ie. to verify evidence from a validator at an old height.
 func (blockExec *BlockExecutor) ValidateBlock(state State, block *types.Block) error {
+	maxTxNumPerBlock := blockExec.mempool.GetMaxTxNumPerBlock()
+	if len(block.Data.Txs) > maxTxNumPerBlock {
+		return fmt.Errorf("Wrong Block.Data.Txs Number. MaxTxNumPerBlock %v, got %v",
+			maxTxNumPerBlock,
+			len(block.Data.Txs),
+		)
+	}
 	return validateBlock(blockExec.evpool, blockExec.db, state, block)
 }
 
